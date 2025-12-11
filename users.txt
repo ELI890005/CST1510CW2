@@ -1,1 +1,4 @@
 eli,$2b$12$03Gx8tRh/zltaChJxbq.IO5mqtKReqnuCrUkHyqFNfk6USVB8k482,cyber_analyst
+
+ELI,$2b$12$R6sPxYpQTy3fnAJTW5QcIuP4RnIB5cN13y/hhJSEZwYuM1G4XrvWi,it_admin
+Pancakes,$2b$12$Jal3pQtsDTdyMC1TCeK1TehhOzDZfhrpMsTKG/..1V8eic/pnfYL6,cyber_analyst

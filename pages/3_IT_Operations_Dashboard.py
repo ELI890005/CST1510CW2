@@ -22,7 +22,7 @@ df = load_tickets()
 # ================================
 # DISPLAY TABLE
 # ================================
-st.subheader("📋 All Tickets")
+st.subheader(" All Tickets")
 st.dataframe(df, use_container_width=True)
 
 # ================================
