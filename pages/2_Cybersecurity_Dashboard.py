@@ -1,75 +1,109 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-from database import db
-from gemini_ai import gemini_reply
+from datetime import datetime
+import os
 
-# AUTH CHECK
-if "logged" not in st.session_state:
-    st.error("Please login first.")
-    st.stop()
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(
+    page_title="Cybersecurity Dashboard",
+    layout="wide"
+)
 
-st.title(" Cybersecurity Dashboard")
+DATA_PATH = "DATA/cyber_incidents.csv"
 
-# LOAD DATA
-rows = db.fetch_all("SELECT * FROM cyber_incidents")
-df = pd.DataFrame(rows)
+# ---------------- INIT CSV ----------------
+if not os.path.exists("DATA"):
+    os.makedirs("DATA")
 
-# SHOW TABLE
-st.subheader(" Incidents Table")
-if df.empty:
-    st.info("No cybersecurity incidents yet.")
-else:
-    st.dataframe(df)
+if not os.path.exists(DATA_PATH):
+    df_init = pd.DataFrame(columns=[
+        "incident_id",
+        "timestamp",
+        "severity",
+        "category",
+        "status",
+        "description"
+    ])
+    df_init.to_csv(DATA_PATH, index=False)
 
-# ADD INCIDENT
-st.subheader(" Create Cyber Incident")
+# ---------------- LOAD DATA ----------------
+df = pd.read_csv(DATA_PATH)
 
-threat = st.text_input("Threat Type (e.g. Phishing)")
-severity = st.selectbox("Severity", ["Low", "Medium", "High", "Critical"])
-status = st.selectbox("Status", ["Open", "Investigating", "Resolved"])
-opened_at = st.date_input("Opened At")
+# ---------------- TITLE ----------------
+st.title(" Cybersecurity Operations Dashboard")
+st.markdown("Monitor, record, and analyse cybersecurity incidents.")
 
-if st.button("Create Incident"):
-    if threat:
-        db.execute(
-            """
-            INSERT INTO cyber_incidents (threat_type, severity, status, opened_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (threat, severity, status, str(opened_at)),
-            commit=True,
-        )
-        st.success("Incident added! Refresh page.")
-    else:
-        st.warning("Threat type is required.")
+# ---------------- CREATE INCIDENT ----------------
+st.subheader(" Log New Security Incident")
 
-# CHART
-st.subheader("Threat Frequency")
+with st.form("create_incident_form", clear_on_submit=True):
 
-if not df.empty and "threat_type" in df.columns:
-    fig = px.histogram(
-        df,
-        x="threat_type",
-        title="Threat Frequency",
-        color="threat_type",
+    category = st.selectbox(
+        "Incident Type",
+        ["Phishing", "Malware", "Intrusion", "DDoS", "Policy Violation"]
     )
-    st.plotly_chart(fig)
-else:
-    st.info("Add incidents to see analytics.")
 
-# GEMINI AI
-st.subheader(" Gemini Security Assistant")
+    severity = st.selectbox(
+        "Severity",
+        ["Low", "Medium", "High", "Critical"]
+    )
 
-question = st.text_input("Ask Gemini about cybersecurity trends")
+    status = st.selectbox(
+        "Status",
+        ["Open", "In Progress", "Resolved"]
+    )
 
-if st.button("Ask Gemini (Cyber)"):
-    if question:
-        answer = gemini_reply(
-            question,
-            context="cybersecurity incidents, phishing trends, SOC operations, incident response",
-        )
-        st.write(answer)
+    description = st.text_area("Incident Description")
+
+    submitted = st.form_submit_button("Log Incident")
+
+    if submitted:
+        new_incident = {
+            "incident_id": int(df["incident_id"].max() + 1) if not df.empty else 6001,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "severity": severity,
+            "category": category,
+            "status": status,
+            "description": description if description else "No description provided"
+        }
+
+        df = pd.concat([df, pd.DataFrame([new_incident])], ignore_index=True)
+        df.to_csv(DATA_PATH, index=False)
+
+        st.success(" Incident logged successfully")
+        st.rerun()
+
+# ---------------- INCIDENT TABLE ----------------
+st.subheader(" Logged Incidents")
+st.dataframe(df, use_container_width=True)
+
+# ---------------- ANALYTICS ----------------
+st.subheader(" Security Analytics")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("### Incidents by Type")
+    category_counts = df["category"].value_counts()
+    if not category_counts.empty:
+        st.bar_chart(category_counts)
     else:
-        st.warning("Enter a question first.")
+        st.info("Add incidents to see analytics.")
+
+with col2:
+    st.markdown("### Incidents by Severity")
+    severity_counts = df["severity"].value_counts()
+    if not severity_counts.empty:
+        st.bar_chart(severity_counts)
+
+# ---------------- STATUS CHART ----------------
+st.markdown("### Incident Status Distribution")
+status_counts = df["status"].value_counts()
+if not status_counts.empty:
+    st.bar_chart(status_counts)
+
+# ---------------- FOOTER ----------------
+st.markdown("---")
+st.caption("Cybersecurity Operations Dashboard | SOC Analytics | Streamlit")
+
 
